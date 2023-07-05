@@ -2,13 +2,14 @@ package com.halitakca.artbookkotlin
 
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.database.sqlite.SQLiteDatabase
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.MediaStore
-import android.provider.MediaStore.Audio.Media
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
@@ -17,7 +18,6 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.material.snackbar.Snackbar
 import com.halitakca.artbookkotlin.databinding.ActivityArtBinding
-import com.halitakca.artbookkotlin.databinding.ActivityMainBinding
 import java.io.ByteArrayOutputStream
 
 class ArtActivity : AppCompatActivity() {
@@ -27,13 +27,49 @@ class ArtActivity : AppCompatActivity() {
     private lateinit var permissionLauncher : ActivityResultLauncher<String>
     var selectedBitMap : Bitmap? = null
 
+    private lateinit var database : SQLiteDatabase
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityArtBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
 
+        database = this.openOrCreateDatabase("Arts", MODE_PRIVATE,null)
+
+
         registerLauncher()
+
+        val intent = intent
+        val info = intent.getStringExtra("info")
+        if(info.equals("new")){
+            binding.artNameText.setText("")
+            binding.artistNameText.setText("")
+            binding.yearText.setText("")
+            binding.button.visibility = View.VISIBLE
+            binding.imageView.setImageResource(R.drawable.selectimage)
+        }else{
+            binding.button.visibility = View.INVISIBLE
+            val selectedId = intent.getIntExtra("id",1)
+
+            val cursor = database.rawQuery("SELECT * FROM arts WHERE id= ? ", arrayOf(selectedId.toString()))
+
+            val artNameIx = cursor.getColumnIndex("artName")
+            val artistNameIx = cursor.getColumnIndex("artistName")
+            val yearIx = cursor.getColumnIndex("year")
+            val imageIx = cursor.getColumnIndex("image")
+
+            while (cursor.moveToNext()){
+                binding.artNameText.setText(cursor.getString(artNameIx))
+                binding.artistNameText.setText(cursor.getString(artistNameIx))
+                binding.yearText.setText(cursor.getString(yearIx))
+
+                val byteArray = cursor.getBlob(imageIx)
+                val bitmap = BitmapFactory.decodeByteArray(byteArray,0 , byteArray.size)
+                binding.imageView.setImageBitmap(bitmap)
+            }
+            cursor.close()
+        }
+
     }
 
     fun saveButtonClicked(view: View){
@@ -52,7 +88,7 @@ class ArtActivity : AppCompatActivity() {
 
             // Then database
             try {
-                val database = this.openOrCreateDatabase("Arts", MODE_PRIVATE,null)
+                //val database = this.openOrCreateDatabase("Arts", MODE_PRIVATE,null)
                 database.execSQL("CREATE TABLE IF NOT EXISTS arts (id INTEGER PRIMARY KEY , artName VARCHAR, artistName VARCHAR, year VARCHAR,image BLOB)")
                 // execSql'den farkı hemen yapmıyor, kontrolü biz kendimize alıyoruz.
                 val sqlString = "INSERT INTO arts (artName,artistName,year,image) VALUES (?, ?, ?, ?)"
