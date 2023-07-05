@@ -37,6 +37,37 @@ class ArtActivity : AppCompatActivity() {
 
     fun saveButtonClicked(view: View){
 
+        val artName = binding.artNameText.text.toString()
+        val artistName = binding.artistNameText.text.toString()
+        val year = binding.yearText.text.toString()
+
+        if(selectedBitMap != null){
+            val smallBitMap = makeSmallerBitMap(selectedBitMap!!, 300)
+        }
+
+    }
+
+    private fun makeSmallerBitMap(image: Bitmap, maximumSize: Int) : Bitmap{
+        var width = image.width
+        var height = image.height
+
+        var bitMapRatio : Double = width.toDouble()/height.toDouble()
+
+        if(bitMapRatio > 1){
+            // landscape
+            width = maximumSize
+            val scaledHeight = width/bitMapRatio
+            height = scaledHeight.toInt()
+
+        }else{
+            // portrait
+            height = maximumSize
+            val scaledWidth = height*bitMapRatio
+            width = scaledWidth.toInt()
+
+        }
+
+        return  Bitmap.createScaledBitmap(image,100,100,true)
     }
 
     fun selectImage(view: View){
