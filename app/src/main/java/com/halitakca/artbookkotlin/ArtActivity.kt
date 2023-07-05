@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat
 import com.google.android.material.snackbar.Snackbar
 import com.halitakca.artbookkotlin.databinding.ActivityArtBinding
 import com.halitakca.artbookkotlin.databinding.ActivityMainBinding
+import java.io.ByteArrayOutputStream
 
 class ArtActivity : AppCompatActivity() {
     private lateinit var binding: ActivityArtBinding
@@ -43,6 +44,34 @@ class ArtActivity : AppCompatActivity() {
 
         if(selectedBitMap != null){
             val smallBitMap = makeSmallerBitMap(selectedBitMap!!, 300)
+
+            // We should convert to ByteArray first
+            val outputStream = ByteArrayOutputStream()
+            smallBitMap.compress(Bitmap.CompressFormat.PNG,50,outputStream)
+            val byteArray = outputStream.toByteArray()
+
+            // Then database
+            try {
+                val database = this.openOrCreateDatabase("Arts", MODE_PRIVATE,null)
+                database.execSQL("CREATE TABLE IF NOT EXISTS arts (id INTEGER PRIMARY KEY , artName VARCHAR, artistName VARCHAR, year VARCHAR,image BLOB)")
+                // execSql'den farkı hemen yapmıyor, kontrolü biz kendimize alıyoruz.
+                val sqlString = "INSERT INTO arts (artName,artistName,year,image) VALUES (?, ?, ?, ?)"
+                val statement = database.compileStatement(sqlString)
+                statement.bindString(1,artName)
+                statement.bindString(2,artistName)
+                statement.bindString(3,year)
+                statement.bindBlob(4,byteArray)
+                statement.execute()
+
+            }catch (e: Exception){
+                e.printStackTrace()
+            }
+
+            val intent = Intent(this@ArtActivity, MainActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP) // BUNDAN ÖNCE AÇIK OLAN NE KADAR AKTİVİTE VARSA HEPSİNİ KAPATIR
+            startActivity(intent)
+
+
         }
 
     }
